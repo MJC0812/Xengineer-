@@ -3,327 +3,890 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 语音绘图工具</title>
+    <title>🎨 AI 语音绘图工具</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', 'Microsoft YaHei', -apple-system, sans-serif;
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
             min-height: 100vh;
             overflow: hidden;
         }
-        
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         .container {
             display: flex;
             height: 100vh;
+            gap: 20px;
+            padding: 20px;
         }
-        
+
         .canvas-container {
             flex: 1;
             position: relative;
-            background: white;
-            margin: 20px;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.15),
+                0 2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
             overflow: hidden;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        
+
+        .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+        }
+
         #canvas {
             width: 100%;
             height: 100%;
             cursor: crosshair;
         }
-        
-        .control-panel {
-            width: 320px;
+
+        .canvas-toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 20px;
+            border-radius: 40px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.5s ease-out;
+            z-index: 10;
+        }
+
+        .canvas-toolbar-right {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .quick-tools {
             background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            animation: fadeInRight 0.5s ease-out;
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .quick-tool-btn {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #495057;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+        }
+
+        .quick-tool-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .quick-tool-btn:active {
+            transform: scale(0.98);
+        }
+
+        .quick-tool-btn .icon {
+            font-size: 16px;
+        }
+
+        .color-palette {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            animation: fadeInRight 0.6s ease-out;
+        }
+
+        .color-palette-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            text-align: center;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .color-btn {
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .color-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: rgba(0, 0, 0, 0.3);
+        }
+
+        .color-btn.selected {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+
+        .dialect-toolbar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            animation: fadeInDown 0.5s ease-out;
+            z-index: 10;
+            max-width: 180px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dialect-toolbar-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .dialect-toolbar-title .icon {
+            font-size: 14px;
+        }
+
+        .dialect-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .dialect-tool-btn {
+            padding: 8px 10px;
+            border: 2px solid rgba(168, 85, 247, 0.15);
+            border-radius: 10px;
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .dialect-tool-btn:hover {
+            border-color: #a78bfa;
+            background: #f5f3ff;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+        }
+
+        .dialect-tool-btn:active {
+            transform: scale(0.98);
+        }
+
+        .dialect-tool-btn.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-color: #8b5cf6;
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .dialect-tool-btn .emoji {
+            font-size: 14px;
+        }
+
+        .dialect-toolbar-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(168, 85, 247, 0.15);
+            font-size: 11px;
+            color: #9333ea;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .toolbar-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toolbar-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .toolbar-btn:hover::before {
+            left: 100%;
+        }
+
+        .toolbar-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .toolbar-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .control-panel {
+            width: 340px;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 20px;
             padding: 24px;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.15),
+                0 2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
         }
-        
+
         .logo {
             text-align: center;
             padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            position: relative;
         }
-        
+
+        .logo::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
         .logo h1 {
-            font-size: 24px;
-            color: #333;
+            font-size: 26px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
-        
+
         .logo p {
             font-size: 12px;
             color: #888;
+            font-weight: 400;
         }
-        
+
         .status-section {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
         }
-        
+
         .status-title {
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
             margin-bottom: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
+
         .status-indicator {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
+            gap: 14px;
+            padding: 14px 16px;
             background: white;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-            transition: all 0.3s ease;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
-        
+
         .status-indicator.listening {
-            border-color: #4CAF50;
-            background: #e8f5e9;
+            border-color: #10b981;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
         }
-        
+
         .status-indicator.error {
-            border-color: #f44336;
-            background: #ffebee;
+            border-color: #ef4444;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
         }
-        
+
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
-            background: #9e9e9e;
-            transition: all 0.3s ease;
+            background: #9ca3af;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
-        
+
         .status-indicator.listening .status-dot {
-            background: #4CAF50;
-            animation: pulse 1.5s infinite;
+            background: #10b981;
+            animation: pulse 2s ease-in-out infinite;
         }
-        
+
         .status-indicator.error .status-dot {
-            background: #f44336;
+            background: #ef4444;
+            animation: shake 0.5s ease-in-out;
         }
-        
+
         @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+            }
         }
-        
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+
         .status-text {
             font-size: 14px;
-            color: #333;
+            color: #374151;
+            font-weight: 500;
         }
-        
+
         .voice-btn {
             width: 100%;
-            padding: 16px;
+            padding: 18px;
             border: none;
-            border-radius: 12px;
+            border-radius: 16px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        
+
+        .voice-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
         .voice-btn.start {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
-        
+
         .voice-btn.start:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
         }
-        
+
+        .voice-btn.start:active {
+            transform: translateY(-1px);
+        }
+
         .voice-btn.stop {
-            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
         }
-        
+
         .voice-btn.stop:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(244, 67, 54, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
         }
-        
+
+        .voice-btn.stop:active {
+            transform: translateY(-1px);
+        }
+
+        .dialect-section {
+            background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dialect-section::before {
+            content: '🌍';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 60px;
+            opacity: 0.1;
+        }
+
+        .dialect-title {
+            font-size: 13px;
+            color: #7c3aed;
+            margin-bottom: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+
+
+        .dialect-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .dialect-btn {
+            flex: 1;
+            min-width: calc(50% - 4px);
+            padding: 10px 12px;
+            border: 2px solid rgba(168, 85, 247, 0.2);
+            border-radius: 10px;
+            background: white;
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .dialect-btn:hover {
+            border-color: #a78bfa;
+            background: #f5f3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+        }
+
+        .dialect-btn.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-color: #8b5cf6;
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .dialect-btn.active:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .dialect-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #9333ea;
+            font-weight: 500;
+        }
+
+        .current-tool {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
+        .current-tool-title {
+            font-size: 13px;
+            color: #2563eb;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .current-tool-value {
+            font-size: 18px;
+            color: #1e40af;
+            font-weight: 700;
+        }
+
+        .mode-section {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        .mode-title {
+            font-size: 13px;
+            color: #059669;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mode-value {
+            font-size: 18px;
+            color: #065f46;
+            font-weight: 700;
+        }
+
         .command-history {
             flex: 1;
             overflow-y: auto;
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
         }
-        
+
+        .command-history::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .command-history::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 2px;
+        }
+
+        .command-history::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
         .history-title {
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
+
         .history-list {
             list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
-        
+
         .history-item {
-            padding: 10px 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            padding: 12px 14px;
+            background: white;
+            border-radius: 10px;
             font-size: 13px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            animation: slideIn 0.3s ease-out;
         }
-        
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .history-item:hover {
+            background: #f9fafb;
+            transform: translateX(4px);
+        }
+
         .history-item .icon {
-            width: 24px;
-            height: 24px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
         }
-        
+
         .history-item.success .icon {
-            background: #e8f5e9;
-            color: #4CAF50;
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #10b981;
         }
-        
+
         .history-item.error .icon {
-            background: #ffebee;
-            color: #f44336;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #ef4444;
         }
-        
+
         .history-item .text {
             flex: 1;
-            color: #333;
+            color: #374151;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        
+
         .history-item .time {
             font-size: 11px;
-            color: #999;
+            color: #9ca3af;
+            font-weight: 500;
+            flex-shrink: 0;
         }
-        
+
         .tips-section {
-            background: #fff3e0;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #ff9800;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .tips-section::before {
+            content: '💡';
+            position: absolute;
+            top: -5px;
+            right: 10px;
+            font-size: 40px;
+            opacity: 0.15;
+        }
+
         .tips-title {
-            font-size: 14px;
-            color: #e65100;
-            margin-bottom: 8px;
-            font-weight: bold;
+            font-size: 13px;
+            color: #b45309;
+            margin-bottom: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        
+
         .tips-list {
             list-style: none;
-            font-size: 12px;
-            color: #8d6e63;
+            font-size: 13px;
+            color: #92400e;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
-        
-        .tips-list li::before {
-            content: '•';
-            color: #ff9800;
-            margin-right: 6px;
-        }
-        
-        .current-tool {
-            background: #e3f2fd;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #2196F3;
-        }
-        
-        .current-tool-title {
-            font-size: 14px;
-            color: #1976D2;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .current-tool-value {
-            font-size: 16px;
-            color: #333;
-            font-weight: bold;
-        }
-        
-        .dialect-section {
-            background: #f3e5f5;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #9c27b0;
-        }
-        
-        .dialect-title {
-            font-size: 14px;
-            color: #7b1fa2;
-            margin-bottom: 12px;
-            font-weight: bold;
-        }
-        
-        .dialect-select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #ce93d8;
+
+        .tips-list li {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.6);
             border-radius: 8px;
-            font-size: 14px;
-            color: #333;
-            background: white;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .tips-list li:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateX(4px);
+        }
+
+        .tips-list li::before {
+            content: '✦';
+            color: #f59e0b;
+            margin-right: 8px;
+            font-size: 10px;
+        }
+
+        .color-preview {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-dot:hover {
+            transform: scale(1.2);
+            border-color: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-dot.selected {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .size-slider {
+            margin-top: 12px;
+        }
+
+        .size-slider input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .size-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             transition: all 0.3s ease;
         }
-        
-        .dialect-select:focus {
-            outline: none;
-            border-color: #9c27b0;
-            box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
+
+        .size-slider input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
-        
-        .dialect-info {
+
+        .size-value {
+            text-align: center;
             margin-top: 8px;
-            font-size: 12px;
-            color: #8e24aa;
-        }
-        
-        .mode-section {
-            background: #e8f5e9;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .mode-title {
             font-size: 14px;
-            color: #2e7d32;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .mode-value {
-            font-size: 16px;
-            color: #333;
-            font-weight: bold;
+            color: #666;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -331,13 +894,86 @@
     <div class="container">
         <div class="canvas-container">
             <canvas id="canvas"></canvas>
+            <div class="dialect-toolbar">
+                <div class="dialect-toolbar-title">
+                    <span class="icon">🌍</span>
+                    <span>方言选择</span>
+                </div>
+                <div class="dialect-grid">
+                    <button class="dialect-tool-btn active" data-dialect="mandarin" onclick="app.changeDialect('mandarin')">
+                        <span class="emoji">🇨🇳</span>
+                        <span>普通话</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="cantonese" onclick="app.changeDialect('cantonese')">
+                        <span class="emoji">🇭🇰</span>
+                        <span>粤语</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="sichuan" onclick="app.changeDialect('sichuan')">
+                        <span class="emoji">🌶️</span>
+                        <span>四川话</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="shanghai" onclick="app.changeDialect('shanghai')">
+                        <span class="emoji">🏮</span>
+                        <span>上海话</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="minnan" onclick="app.changeDialect('minnan')">
+                        <span class="emoji">🇹🇼</span>
+                        <span>闽南语</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="northeast" onclick="app.changeDialect('northeast')">
+                        <span class="emoji">❄️</span>
+                        <span>东北话</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="wu" onclick="app.changeDialect('wu')">
+                        <span class="emoji">🌊</span>
+                        <span>吴语</span>
+                    </button>
+                    <button class="dialect-tool-btn" data-dialect="hakka" onclick="app.changeDialect('hakka')">
+                        <span class="emoji">🏠</span>
+                        <span>客家话</span>
+                    </button>
+                </div>
+                <div class="dialect-toolbar-info" id="dialectToolbarInfo">🇨🇳 当前: 普通话</div>
+            </div>
+            <div class="canvas-toolbar">
+                <button class="toolbar-btn" title="撤销" onclick="app.undo()">↩️</button>
+                <button class="toolbar-btn" title="重做" onclick="app.redo()">↪️</button>
+                <button class="toolbar-btn" title="清空" onclick="app.clearCanvas()">🗑️</button>
+                <button class="toolbar-btn" title="保存" onclick="app.saveCanvas()">💾</button>
+            </div>
+            <div class="canvas-toolbar-right">
+                <div class="quick-tools">
+                    <button class="quick-tool-btn" onclick="app.drawCircle()"><span class="icon">⭕</span>圆形</button>
+                    <button class="quick-tool-btn" onclick="app.drawSquare()"><span class="icon">⬜</span>正方形</button>
+                    <button class="quick-tool-btn" onclick="app.drawTriangle()"><span class="icon">🔺</span>三角形</button>
+                    <button class="quick-tool-btn" onclick="app.drawLine()"><span class="icon">➖</span>直线</button>
+                    <button class="quick-tool-btn" onclick="app.drawSin()"><span class="icon">📈</span>正弦</button>
+                    <button class="quick-tool-btn" onclick="app.drawGrid()"><span class="icon">📐</span>坐标</button>
+                    <button class="quick-tool-btn" onclick="app.setTool('brush')"><span class="icon">✏️</span>画笔</button>
+                    <button class="quick-tool-btn" onclick="app.setTool('eraser')"><span class="icon">🧹</span>橡皮</button>
+                </div>
+                <div class="color-palette">
+                    <div class="color-palette-title">颜色</div>
+                    <div class="color-grid">
+                        <button class="color-btn selected" style="background: #FF0000;" onclick="app.setColor('#FF0000', '红色')" title="红色"></button>
+                        <button class="color-btn" style="background: #00FF00;" onclick="app.setColor('#00FF00', '绿色')" title="绿色"></button>
+                        <button class="color-btn" style="background: #0000FF;" onclick="app.setColor('#0000FF', '蓝色')" title="蓝色"></button>
+                        <button class="color-btn" style="background: #FFFF00;" onclick="app.setColor('#FFFF00', '黄色')" title="黄色"></button>
+                        <button class="color-btn" style="background: #FFA500;" onclick="app.setColor('#FFA500', '橙色')" title="橙色"></button>
+                        <button class="color-btn" style="background: #800080;" onclick="app.setColor('#800080', '紫色')" title="紫色"></button>
+                        <button class="color-btn" style="background: #FFC0CB;" onclick="app.setColor('#FFC0CB', '粉色')" title="粉色"></button>
+                        <button class="color-btn" style="background: #808080;" onclick="app.setColor('#808080', '灰色')" title="灰色"></button>
+                        <button class="color-btn" style="background: #000000;" onclick="app.setColor('#000000', '黑色')" title="黑色"></button>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="control-panel">
             <div class="logo">
                 <h1>🎨 语音绘图</h1>
                 <p>纯语音控制的AI绘图工具</p>
             </div>
-            
+
             <div class="status-section">
                 <div class="status-title">语音状态</div>
                 <div class="status-indicator" id="statusIndicator">
@@ -345,56 +981,62 @@
                     <div class="status-text" id="statusText">点击开始按钮开始语音识别</div>
                 </div>
             </div>
-            
+
             <button class="voice-btn start" id="voiceBtn">
                 <span>🎤</span>
                 <span>开始语音</span>
             </button>
-            
+
             <div class="dialect-section">
-                <div class="dialect-title">🌍 方言选择</div>
-                <select class="dialect-select" id="dialectSelect">
-                    <option value="mandarin">普通话</option>
-                    <option value="cantonese">粤语/广东话</option>
-                    <option value="sichuan">四川话</option>
-                    <option value="shanghai">上海话</option>
-                    <option value="minnan">闽南语</option>
-                    <option value="northeast">东北话</option>
-                    <option value="wu">吴语</option>
-                    <option value="hakka">客家话</option>
-                </select>
+                <div class="dialect-title">方言选择</div>
+                <div class="dialect-buttons">
+                    <button class="dialect-btn active" data-dialect="mandarin">🇨🇳 普通话</button>
+                    <button class="dialect-btn" data-dialect="cantonese">🇭🇰 粤语</button>
+                    <button class="dialect-btn" data-dialect="sichuan">🌶️ 四川话</button>
+                    <button class="dialect-btn" data-dialect="shanghai">🏮 上海话</button>
+                    <button class="dialect-btn" data-dialect="minnan">🇹🇼 闽南语</button>
+                    <button class="dialect-btn" data-dialect="northeast">❄️ 东北话</button>
+                    <button class="dialect-btn" data-dialect="wu">🌊 吴语</button>
+                    <button class="dialect-btn" data-dialect="hakka">🏠 客家话</button>
+                </div>
                 <div class="dialect-info" id="dialectInfo">当前: 普通话</div>
             </div>
-            
+
             <div class="current-tool">
                 <div class="current-tool-title">当前工具</div>
                 <div class="current-tool-value" id="currentTool">画笔工具</div>
             </div>
-            
+
             <div class="mode-section">
                 <div class="mode-title">绘制模式</div>
                 <div class="mode-value" id="modeValue">描边模式</div>
             </div>
-            
+
             <div class="command-history">
                 <div class="history-title">指令历史</div>
                 <ul class="history-list" id="historyList"></ul>
             </div>
-            
+
             <div class="tips-section">
-                <div class="tips-title">💡 使用提示</div>
+                <div class="tips-title">使用提示</div>
                 <ul class="tips-list" id="tipsList">
                     <li>说"画圆"绘制圆形</li>
-                    <li>说"画正方形"绘制正方形</li>
-                    <li>说"画直线"绘制直线</li>
+                    <li>说"画正弦"绘制正弦曲线</li>
+                    <li>说"画抛物线"绘制抛物线</li>
+                    <li>说"画坐标系"绘制坐标轴</li>
                     <li>说"红色"切换颜色</li>
-                    <li>说"撤销"撤销操作</li>
-                    <li>说"清空"清空画布</li>
+                    <li>说"粗细5"设置笔刷大小</li>
                 </ul>
             </div>
         </div>
     </div>
-    
+
     <script src="app.js"></script>
+    <script>
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new VoiceDrawingApp();
+        });
+    </script>
 </body>
 </html>
