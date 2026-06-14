@@ -3,398 +3,885 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 语音绘图工具</title>
+    <title>🎨 AI 语音绘图工具</title>
     <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #764ba2;
+            --accent-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --bg-gradient: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-lg: 20px;
+            --gap: 16px;
+            --gap-sm: 8px;
+            --gap-lg: 24px;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', 'Microsoft YaHei', -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
             min-height: 100vh;
             overflow: hidden;
         }
-        
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         .container {
             display: flex;
             height: 100vh;
+            gap: var(--gap);
+            padding: var(--gap);
         }
-        
+
+        .sidebar-left {
+            width: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-lg);
+            padding: var(--gap);
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap);
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 20;
+            position: relative;
+        }
+
+        .sidebar-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            border: none;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .sidebar-btn:hover {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .sidebar-btn.active {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        .sidebar-btn .tooltip {
+            position: fixed;
+            left: calc(var(--gap) + 80px + 12px);
+            top: auto;
+            transform: translateY(-50%);
+            margin-left: 0;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 200px;
+        }
+
+        .sidebar-btn:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.08);
+            margin: 4px 0;
+        }
+
         .canvas-container {
             flex: 1;
             position: relative;
-            background: white;
-            margin: 20px;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
             overflow: hidden;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 1;
         }
-        
+
         #canvas {
             width: 100%;
             height: 100%;
             cursor: crosshair;
         }
-        
+
+        .toolbar-bottom {
+            position: absolute;
+            bottom: calc(var(--gap) + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: var(--gap-sm);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px var(--gap);
+            border-radius: 40px;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.5s ease-out;
+            z-index: 5;
+            margin-left: 0;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .toolbar-btn {
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toolbar-btn:hover {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+
+        .toolbar-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .toolbar-spacer {
+            width: 1px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 0 4px;
+        }
+
         .control-panel {
             width: 320px;
             background: rgba(255, 255, 255, 0.95);
-            padding: 24px;
+            border-radius: var(--radius-lg);
+            padding: var(--gap-lg);
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            backdrop-filter: blur(10px);
+            gap: var(--gap-lg);
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow-y: auto;
+            z-index: 20;
+            position: relative;
         }
-        
-        .logo {
+
+        .control-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 2px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary-color), var(--primary-dark));
+            border-radius: 2px;
+        }
+
+        .panel-header {
             text-align: center;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            padding-bottom: var(--gap);
+            border-bottom: 2px solid var(--accent-color);
+            position: relative;
         }
-        
-        .logo h1 {
-            font-size: 24px;
-            color: #333;
-            margin-bottom: 8px;
+
+        .panel-header h1 {
+            font-size: 22px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+            font-weight: 700;
         }
-        
-        .logo p {
+
+        .panel-header p {
             font-size: 12px;
-            color: #888;
-        }
-        
-        .status-section {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px;
-        }
-        
-        .status-title {
-            font-size: 14px;
             color: #666;
-            margin-bottom: 12px;
         }
-        
-        .status-indicator {
+
+        .section {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: var(--radius);
+            padding: var(--gap);
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--gap-sm);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-title .icon {
+            font-size: 14px;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: var(--radius-sm);
+            padding: 14px;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
-            background: white;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid transparent;
             transition: all 0.3s ease;
         }
-        
-        .status-indicator.listening {
-            border-color: #4CAF50;
-            background: #e8f5e9;
+
+        .status-card.listening {
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
         }
-        
-        .status-indicator.error {
-            border-color: #f44336;
-            background: #ffebee;
+
+        .status-card.error {
+            border-color: var(--error-color);
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
         }
-        
+
         .status-dot {
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background: #9e9e9e;
-            transition: all 0.3s ease;
+            background: #9ca3af;
         }
-        
-        .status-indicator.listening .status-dot {
-            background: #4CAF50;
-            animation: pulse 1.5s infinite;
+
+        .status-card.listening .status-dot {
+            background: var(--success-color);
+            animation: pulse 2s ease-in-out infinite;
         }
-        
-        .status-indicator.error .status-dot {
-            background: #f44336;
+
+        .status-card.error .status-dot {
+            background: var(--error-color);
         }
-        
+
         @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
         }
-        
+
         .status-text {
-            font-size: 14px;
-            color: #333;
+            font-size: 13px;
+            color: #374151;
+            font-weight: 500;
+            flex: 1;
         }
-        
+
         .voice-btn {
             width: 100%;
             padding: 16px;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .voice-btn.start {
+            background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .voice-btn.start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .voice-btn.stop {
+            background: linear-gradient(135deg, var(--error-color) 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .voice-btn.stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .dialect-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--gap-sm);
+        }
+
+        .dialect-btn {
+            padding: 10px 8px;
+            border: 2px solid rgba(168, 85, 247, 0.15);
+            border-radius: var(--radius-sm);
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            color: #495057;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 6px;
         }
-        
-        .voice-btn.start {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+
+        .dialect-btn:hover {
+            border-color: var(--accent-color);
+            background: #f5f3ff;
+            transform: translateY(-1px);
+        }
+
+        .dialect-btn.active {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-dark) 100%);
+            border-color: var(--accent-color);
             color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
-        
-        .voice-btn.start:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+
+        .dialect-info {
+            margin-top: var(--gap-sm);
+            font-size: 12px;
+            color: var(--accent-color);
+            font-weight: 500;
+            text-align: center;
         }
-        
-        .voice-btn.stop {
-            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
-            color: white;
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
         }
-        
-        .voice-btn.stop:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(244, 67, 54, 0.4);
+
+        .info-row:last-child {
+            border-bottom: none;
         }
-        
-        .command-history {
-            flex: 1;
-            overflow-y: auto;
+
+        .info-label {
+            font-size: 13px;
+            color: #6b7280;
         }
-        
-        .history-title {
+
+        .info-value {
             font-size: 14px;
-            color: #666;
-            margin-bottom: 12px;
+            font-weight: 600;
+            color: #1f2937;
         }
-        
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+        }
+
+        .color-btn {
+            aspect-ratio: 1;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+            border-color: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-btn.selected {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+        }
+
+        .size-control {
+            margin-top: var(--gap-sm);
+        }
+
+        .size-slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .size-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .size-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .size-value {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
         .history-list {
             list-style: none;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            max-height: 150px;
+            overflow-y: auto;
         }
-        
+
+        .history-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
         .history-item {
             padding: 10px 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            font-size: 13px;
+            background: white;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
+            animation: slideIn 0.3s ease-out;
         }
-        
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
         .history-item .icon {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            flex-shrink: 0;
         }
-        
+
         .history-item.success .icon {
-            background: #e8f5e9;
-            color: #4CAF50;
+            background: #dcfce7;
+            color: var(--success-color);
         }
-        
+
         .history-item.error .icon {
-            background: #ffebee;
-            color: #f44336;
+            background: #fee2e2;
+            color: var(--error-color);
         }
-        
+
         .history-item .text {
             flex: 1;
-            color: #333;
+            color: #374151;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        
+
         .history-item .time {
-            font-size: 11px;
-            color: #999;
+            font-size: 10px;
+            color: #9ca3af;
         }
-        
-        .tips-section {
-            background: #fff3e0;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #ff9800;
-        }
-        
-        .tips-title {
-            font-size: 14px;
-            color: #e65100;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
+
         .tips-list {
             list-style: none;
             font-size: 12px;
-            color: #8d6e63;
+            color: #666;
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-        
-        .tips-list li::before {
-            content: '•';
-            color: #ff9800;
-            margin-right: 6px;
-        }
-        
-        .current-tool {
-            background: #e3f2fd;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #2196F3;
-        }
-        
-        .current-tool-title {
-            font-size: 14px;
-            color: #1976D2;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        
-        .current-tool-value {
-            font-size: 16px;
-            color: #333;
-            font-weight: bold;
-        }
-        
-        .dialect-section {
-            background: #f3e5f5;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #9c27b0;
-        }
-        
-        .dialect-title {
-            font-size: 14px;
-            color: #7b1fa2;
-            margin-bottom: 12px;
-            font-weight: bold;
-        }
-        
-        .dialect-select {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #ce93d8;
+
+        .tips-list li {
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.7);
             border-radius: 8px;
-            font-size: 14px;
-            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tips-list li::before {
+            content: '✦';
+            color: var(--warning-color);
+            font-size: 10px;
+        }
+
+        .tool-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .tool-btn {
+            padding: 10px 6px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-sm);
             background: white;
+            font-size: 11px;
+            font-weight: 500;
+            color: #495057;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
-        
-        .dialect-select:focus {
-            outline: none;
-            border-color: #9c27b0;
-            box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
+
+        .tool-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
         }
-        
-        .dialect-info {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #8e24aa;
+
+        .tool-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
         }
-        
-        .mode-section {
-            background: #e8f5e9;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .mode-title {
+
+        .tool-btn .icon {
             font-size: 14px;
-            color: #2e7d32;
-            margin-bottom: 8px;
-            font-weight: bold;
         }
-        
-        .mode-value {
-            font-size: 16px;
-            color: #333;
-            font-weight: bold;
+
+        .mode-switch {
+            display: flex;
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: white;
+            color: #1f2937;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .drawing-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .drawing-btn {
+            padding: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-sm);
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .drawing-btn:hover {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .drawing-btn .icon {
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="sidebar-left">
+            <button class="sidebar-btn active" onclick="app.setTool('brush')" title="画笔">
+                ✏️
+                <span class="tooltip">画笔</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.setTool('eraser')" title="橡皮">
+                🧹
+                <span class="tooltip">橡皮擦</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.drawCircle()" title="圆形">
+                ⭕
+                <span class="tooltip">画圆形</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.drawSquare()" title="正方形">
+                ⬜
+                <span class="tooltip">画正方形</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.drawTriangle()" title="三角形">
+                🔺
+                <span class="tooltip">画三角形</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.drawLine()" title="直线">
+                ➖
+                <span class="tooltip">画直线</span>
+            </button>
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-btn" onclick="app.drawSin()" title="正弦">
+                📈
+                <span class="tooltip">正弦曲线</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.drawParabola()" title="抛物线">
+                ⬆️
+                <span class="tooltip">抛物线</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.drawGrid()" title="坐标系">
+                📐
+                <span class="tooltip">坐标系</span>
+            </button>
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-btn" onclick="app.undo()" title="撤销">
+                ↩️
+                <span class="tooltip">撤销</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.redo()" title="重做">
+                ↪️
+                <span class="tooltip">重做</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.clearCanvas()" title="清空">
+                🗑️
+                <span class="tooltip">清空画布</span>
+            </button>
+            <button class="sidebar-btn" onclick="app.saveCanvas()" title="保存">
+                💾
+                <span class="tooltip">保存图片</span>
+            </button>
+        </div>
+
         <div class="canvas-container">
             <canvas id="canvas"></canvas>
+            <div class="toolbar-bottom">
+                <button class="toolbar-btn" onclick="app.setMode('stroke')" title="描边">✏️</button>
+                <button class="toolbar-btn" onclick="app.setMode('fill')" title="填充">⚫</button>
+                <button class="toolbar-btn" onclick="app.setMode('gradient')" title="渐变">🎨</button>
+                <div class="toolbar-spacer"></div>
+                <button class="toolbar-btn" onclick="app.drawSin()" title="正弦">📈</button>
+                <button class="toolbar-btn" onclick="app.drawCos()" title="余弦">📉</button>
+                <button class="toolbar-btn" onclick="app.drawParabola()" title="抛物线">⬆️</button>
+                <button class="toolbar-btn" onclick="app.drawGrid()" title="坐标">📐</button>
+            </div>
         </div>
+
         <div class="control-panel">
-            <div class="logo">
+            <div class="panel-header">
                 <h1>🎨 语音绘图</h1>
                 <p>纯语音控制的AI绘图工具</p>
             </div>
-            
-            <div class="status-section">
-                <div class="status-title">语音状态</div>
-                <div class="status-indicator" id="statusIndicator">
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">🎤</span>
+                    <span>语音状态</span>
+                </div>
+                <div class="status-card" id="statusIndicator">
                     <div class="status-dot"></div>
-                    <div class="status-text" id="statusText">点击开始按钮开始语音识别</div>
+                    <div class="status-text" id="statusText">点击开始语音识别</div>
                 </div>
             </div>
-            
+
             <button class="voice-btn start" id="voiceBtn">
                 <span>🎤</span>
                 <span>开始语音</span>
             </button>
-            
-            <div class="dialect-section">
-                <div class="dialect-title">🌍 方言选择</div>
-                <select class="dialect-select" id="dialectSelect">
-                    <option value="mandarin">普通话</option>
-                    <option value="cantonese">粤语/广东话</option>
-                    <option value="sichuan">四川话</option>
-                    <option value="shanghai">上海话</option>
-                    <option value="minnan">闽南语</option>
-                    <option value="northeast">东北话</option>
-                    <option value="wu">吴语</option>
-                    <option value="hakka">客家话</option>
-                </select>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">🌍</span>
+                    <span>方言选择</span>
+                </div>
+                <div class="dialect-grid">
+                    <button class="dialect-btn active" data-dialect="mandarin" onclick="app.changeDialect('mandarin')">🇨🇳 普通话</button>
+                    <button class="dialect-btn" data-dialect="english" onclick="app.changeDialect('english')">🇺🇸 English</button>
+                    <button class="dialect-btn" data-dialect="cantonese" onclick="app.changeDialect('cantonese')">🇭🇰 粤语</button>
+                    <button class="dialect-btn" data-dialect="sichuan" onclick="app.changeDialect('sichuan')">🌶️ 四川话</button>
+                    <button class="dialect-btn" data-dialect="shanghai" onclick="app.changeDialect('shanghai')">🏮 上海话</button>
+                    <button class="dialect-btn" data-dialect="minnan" onclick="app.changeDialect('minnan')">🇹🇼 闽南语</button>
+                    <button class="dialect-btn" data-dialect="northeast" onclick="app.changeDialect('northeast')">❄️ 东北话</button>
+                    <button class="dialect-btn" data-dialect="wu" onclick="app.changeDialect('wu')">🌊 吴语</button>
+                    <button class="dialect-btn" data-dialect="hakka" onclick="app.changeDialect('hakka')">🏠 客家话</button>
+                </div>
                 <div class="dialect-info" id="dialectInfo">当前: 普通话</div>
             </div>
-            
-            <div class="current-tool">
-                <div class="current-tool-title">当前工具</div>
-                <div class="current-tool-value" id="currentTool">画笔工具</div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📊</span>
+                    <span>当前状态</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">工具</span>
+                    <span class="info-value" id="currentTool">画笔工具</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">模式</span>
+                    <span class="info-value" id="modeValue">描边模式</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">粗细</span>
+                    <span class="info-value" id="sizeValue">5px</span>
+                </div>
             </div>
-            
-            <div class="mode-section">
-                <div class="mode-title">绘制模式</div>
-                <div class="mode-value" id="modeValue">描边模式</div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">🎨</span>
+                    <span>颜色选择</span>
+                </div>
+                <div class="color-grid">
+                    <button class="color-btn selected" style="background: #FF0000;" onclick="app.setColor('#FF0000', '红色')" title="红色"></button>
+                    <button class="color-btn" style="background: #00FF00;" onclick="app.setColor('#00FF00', '绿色')" title="绿色"></button>
+                    <button class="color-btn" style="background: #0000FF;" onclick="app.setColor('#0000FF', '蓝色')" title="蓝色"></button>
+                    <button class="color-btn" style="background: #FFFF00;" onclick="app.setColor('#FFFF00', '黄色')" title="黄色"></button>
+                    <button class="color-btn" style="background: #FFA500;" onclick="app.setColor('#FFA500', '橙色')" title="橙色"></button>
+                    <button class="color-btn" style="background: #800080;" onclick="app.setColor('#800080', '紫色')" title="紫色"></button>
+                    <button class="color-btn" style="background: #FFC0CB;" onclick="app.setColor('#FFC0CB', '粉色')" title="粉色"></button>
+                    <button class="color-btn" style="background: #808080;" onclick="app.setColor('#808080', '灰色')" title="灰色"></button>
+                    <button class="color-btn" style="background: #000000;" onclick="app.setColor('#000000', '黑色')" title="黑色"></button>
+                    <button class="color-btn" style="background: #FFD700;" onclick="app.setColor('#FFD700', '金色')" title="金色"></button>
+                    <button class="color-btn" style="background: #C0C0C0;" onclick="app.setColor('#C0C0C0', '银色')" title="银色"></button>
+                    <button class="color-btn" style="background: #FFFFFF;" onclick="app.setColor('#FFFFFF', '白色')" title="白色"></button>
+                </div>
             </div>
-            
-            <div class="command-history">
-                <div class="history-title">指令历史</div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📏</span>
+                    <span>笔刷粗细</span>
+                </div>
+                <div class="size-control">
+                    <input type="range" class="size-slider" min="1" max="50" value="5" oninput="app.setSize(this.value)">
+                    <div class="size-value" id="sizeDisplay">5</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📝</span>
+                    <span>绘制模式</span>
+                </div>
+                <div class="mode-switch">
+                    <button class="mode-btn active" onclick="app.setMode('stroke')">描边</button>
+                    <button class="mode-btn" onclick="app.setMode('fill')">填充</button>
+                    <button class="mode-btn" onclick="app.setMode('gradient')">渐变</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📜</span>
+                    <span>指令历史</span>
+                </div>
                 <ul class="history-list" id="historyList"></ul>
             </div>
-            
-            <div class="tips-section">
-                <div class="tips-title">💡 使用提示</div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">💡</span>
+                    <span>使用提示</span>
+                </div>
                 <ul class="tips-list" id="tipsList">
                     <li>说"画圆"绘制圆形</li>
-                    <li>说"画正方形"绘制正方形</li>
-                    <li>说"画直线"绘制直线</li>
+                    <li>说"画正弦"绘制正弦曲线</li>
+                    <li>说"画抛物线"绘制抛物线</li>
+                    <li>说"画坐标系"绘制坐标轴</li>
                     <li>说"红色"切换颜色</li>
-                    <li>说"撤销"撤销操作</li>
-                    <li>说"清空"清空画布</li>
+                    <li>说"粗细5"设置笔刷大小</li>
                 </ul>
             </div>
         </div>
     </div>
-    
+
     <script src="app.js"></script>
+    <script>
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new VoiceDrawingApp();
+        });
+    </script>
 </body>
 </html>
